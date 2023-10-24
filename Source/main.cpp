@@ -12,7 +12,14 @@
 #include "SFML/System/Clock.hpp"
 #include "SFML/Window/Event.hpp"
 
+sf::Sprite sprite—rimson;
+sf::Texture spriteTexture—rimson;
+sf::Sprite spriteYellow;
+sf::Texture spriteTextureYellow;
+sf::Sprite spritePurple;
+sf::Texture spriteTexturePurple;
 
+sf::Color bgColor(sf::Color::White);
 void HandleUserInput(sf::RenderWindow& window, const sf::Event& event)
 {
 	switch (event.type)
@@ -20,88 +27,65 @@ void HandleUserInput(sf::RenderWindow& window, const sf::Event& event)
 	case sf::Event::Closed:
 		window.close();
 		break;
+	case sf::Event::MouseButtonPressed:
+		if (event.mouseButton.button == sf::Mouse::Left)
+		{
+			if (sprite—rimson.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y))
+			{
+				bgColor = sf::Color(245, 0, 88);
+			}
+			if (spriteYellow.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y))
+			{
+				bgColor = sf::Color(224, 188, 0);
+			}
+			if (spritePurple.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y))
+			{
+				bgColor = sf::Color(130, 17, 244);
+			}
+		}
+		break;
 	default:
 		break;
 	}
 }
 
-void Update(sf::RenderWindow& window, const sf::Time& deltaClock)
-{
-	// Make some time-dependent updates, like: physics, gameplay logic, animations, etc.
-}
-sf::Sprite sprite;
-sf::Texture spriteTexture;
-sf::Image spriteImage;
-
-void Render(sf::RenderWindow& window)
-{
-	// Draw some sfml/opengl items
-	static sf::CircleShape circle = []()
-	{
-		sf::CircleShape circle;
-		circle.setRadius(50);
-		circle.setPosition(200, 200);
-		circle.setFillColor(sf::Color::White);
-		return circle;
-	}();
-	window.draw(circle);
-	window.draw(sprite);
-}
-
-void RenderGui(sf::RenderWindow& window)
-{
-	ImGui::Begin("Default window");
-	ImGui::End();
-}
-
-
 int main()
 {
+	
+
 	sf::RenderWindow window(sf::VideoMode(800, 800), "Geometry modeling 1");
 	window.setFramerateLimit(60);
-	if (!ImGui::SFML::Init(window))
-	{
-		std::cout << "ImGui initialization failed\n";
-		return -1;
-	}
 
-	spriteImage.create(200, 200);
-	for (int x = 0; x < spriteImage.getSize().x; ++x)
-	{
-		for (int y = 0; y < spriteImage.getSize().y; ++y)
-		{
-			spriteImage.setPixel(x, y, sf::Color(rand()%255, rand()%255, rand()%255));
-		}	
-	}
+	spriteTexture—rimson.loadFromFile("./Source/button/button1.png");
+	sprite—rimson.setTexture(spriteTexture—rimson);
+	sprite—rimson.setTextureRect(sf::IntRect(0, 0, 214, 94));
+	sprite—rimson.setPosition(60, 60);
 
-	spriteTexture.loadFromImage(spriteImage);
-	sprite.setTexture(spriteTexture);
-	sprite.setPosition(400, 400);
+	
+	spriteTextureYellow.loadFromFile("./Source/button/button2.png");
+	spriteYellow.setTexture(spriteTextureYellow);
+	spriteYellow.setTextureRect(sf::IntRect(0, 0, 166, 94));
+	spriteYellow.setPosition(314,60);
 
-	sf::Clock deltaClock;
+	
+	spriteTexturePurple.loadFromFile("./Source/button/button3.png");
+	spritePurple.setTexture(spriteTexturePurple);
+	spritePurple.setTextureRect(sf::IntRect(0,0,224,94));
+	spritePurple.setPosition(520, 60);
+
 	while (window.isOpen())
 	{
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
-			ImGui::SFML::ProcessEvent(window, event);
 			HandleUserInput(window, event);
 		}
-
-		sf::Time deltaTime = deltaClock.restart();
-		ImGui::SFML::Update(window, deltaTime);
-		Update(window, deltaTime);
-
-		window.clear();
-
-		RenderGui(window);
-		Render(window);
-
-		ImGui::SFML::Render(window);
-
+		window.clear(bgColor);
+		window.draw(spritePurple);
+		window.draw(sprite—rimson);
+		window.draw(spriteYellow);
 		window.display();
 	}
-	ImGui::SFML::Shutdown();
 
 	return 0;
 }
