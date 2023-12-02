@@ -1,91 +1,220 @@
 #include <iostream>
 
-#include "imgui.h"
-#include "imgui-SFML.h"
-#include "SFML/Graphics/RenderWindow.hpp"
-#include "SFML/Graphics/Text.hpp"
-#include "SFML/Graphics/Image.hpp"
-#include "SFML/Graphics/Texture.hpp"
-#include "SFML/Graphics/Sprite.hpp"
+#include "SFML/Graphics.hpp"
 #include "SFML/Graphics/CircleShape.hpp"
+#include "SFML/Graphics/Image.hpp"
 #include "SFML/Graphics/RenderTexture.hpp"
+#include "SFML/Graphics/RenderWindow.hpp"
+#include "SFML/Graphics/Sprite.hpp"
+#include "SFML/Graphics/Text.hpp"
+#include "SFML/Graphics/Texture.hpp"
 #include "SFML/System/Clock.hpp"
 #include "SFML/Window/Event.hpp"
+#include "cmath"
+#include "functional"
+#include "imgui-SFML.h"
+#include "imgui.h"
+#include "string"
 
-sf::Sprite sprite—rimson;
-sf::Texture spriteTexture—rimson;
-sf::Sprite spriteYellow;
-sf::Texture spriteTextureYellow;
-sf::Sprite spritePurple;
-sf::Texture spriteTexturePurple;
+using namespace sf;
 
-sf::Color bgColor(sf::Color::White);
-void HandleUserInput(sf::RenderWindow& window, const sf::Event& event)
+static int colour[3] = {255, 255, 255};
+class RFuncSprite : public Sprite
+{
+public:
+	
+	void Create(const Vector2u &size)
+	{
+		_AUALL.create(size.x, size.y, Color::White);
+		_BUALL.create(size.x, size.y, Color::White);
+		_CUALL.create(size.x, size.y, Color::White);
+		_DUALL.create(size.x, size.y, Color::White);
+		_allImage.create(_AUALL.getSize().x * 2, _AUALL.getSize().y * 2, Color::White);
+	}
+	
+	void DrawRFunc(const std::function<float(const sf::Vector2f &)> &rfunc, const sf::FloatRect &subSpace, int r,
+				   int g, int b)
+	{
+		for (unsigned x = 0; x < _AUALL.getSize().x; ++x)
+		{
+			for (unsigned y = 0; y < _AUALL.getSize().y; ++y)
+			{
+				Vector2f spaceStep = {
+					subSpace.width / static_cast<float>(_AUALL.getSize().x),
+					subSpace.height / static_cast<float>(_AUALL.getSize().y),
+				};
+				Vector2f spacePoint = {
+					subSpace.left + static_cast<float>(x) * spaceStep.x,
+					subSpace.top + static_cast<float>(y) * spaceStep.y,
+				};
+
+				const sf::Vector2f spacePoint1 = {spacePoint.x + spaceStep.x, spacePoint.y};
+				const sf::Vector2f spacePoint2 = {spacePoint.x, spacePoint.y + spaceStep.y};
+
+				Vector3f v1 = {spacePoint.x, spacePoint.y, rfunc(spacePoint)};
+
+				Vector3f v2 = {spacePoint1.x, spacePoint1.y, rfunc(spacePoint1)};
+
+				Vector3f v3 = {spacePoint2.x, spacePoint2.y, rfunc(spacePoint2)};
+
+				float A = v1.y * (v2.z - v3.z) - v2.y * (v1.z - v3.z) + v3.y * (v1.z - v2.z);
+				float B = -(v1.x * (v2.z - v3.z) - v2.x * (v1.z - v3.z) + v3.x * (v1.z - v2.z));
+				float C = v1.x * (v2.y - v3.y) - v2.x * (v1.y - v3.y) + v3.x * (v1.y - v2.y);
+				float D = -(v1.x * (v2.y * v3.z - v3.y * v2.z) - v2.x * (v1.y * v3.z - v3.y * v1.z) +
+							v3.x * (v1.y * v2.z - v2.y * v1.z));
+
+				float auall = A / (sqrt(A * A + B * B + C * C + D * D));
+				float buall = B / (sqrt(A * A + B * B + C * C + D * D));
+				float cuall = C / (sqrt(A * A + B * B + C * C + D * D));
+				float duall = D / (sqrt(A * A + B * B + C * C + D * D));
+				
+				Paint(_AUALL, x, y, auall, r, g, b);
+				Paint(_BUALL, x, y, buall, r, g, b);
+				Paint(_CUALL, x, y, cuall, r, g, b);
+				Paint(_DUALL, x, y, duall, r, g, b);
+			}
+		}
+		_texturen1.loadFromImage(_AUALL);
+		_texturen2.loadFromImage(_BUALL);
+		_texturen3.loadFromImage(_CUALL);
+		_texturen4.loadFromImage(_DUALL);
+	}
+	void Paint(sf::Image &image, int x, int y, float n, int r, int g, int b)
+	{
+		sf::Color pixelColor;
+		pixelColor.r = static_cast<sf::Uint8>((r * (n + 1.f)) / 2.f);
+		pixelColor.g = static_cast<sf::Uint8>((g * (n + 1.f)) / 2.f);
+		pixelColor.b = static_cast<sf::Uint8>((b * (n + 1.f)) / 2.f);
+		image.setPixel(x, y, pixelColor);
+	}
+	void CombineImages()
+	{
+		_allImage.copy(_AUALL, 0, 0);
+		_allImage.copy(_BUALL, _AUALL.getSize().x, 0);
+		_allImage.copy(_CUALL, 0, _AUALL.getSize().y);
+		_allImage.copy(_DUALL, _AUALL.getSize().x, _AUALL.getSize().y);
+		_textureAll.loadFromImage(_allImage);
+	}
+	void Save()
+	{
+		_AUALL.saveToFile("./Source/n1.jpg");
+		_BUALL.saveToFile("./Source/n2.jpg");
+		_CUALL.saveToFile("./Source/n3.jpg");
+		_DUALL.saveToFile("./Source/n4.jpg");
+	}
+	void SetTextureAll() { setTexture(_textureAll); }
+
+private:
+	Texture _texturen1;
+	Texture _texturen2;
+	Texture _texturen3;
+	Texture _texturen4;
+	Image _allImage;
+	Texture _textureAll;
+	Image _AUALL;
+	Image _BUALL;
+	Image _CUALL;
+	Image _DUALL;
+};
+
+float RAnd(float w1, float w2) { return w1 + w2 - sqrt(w1 * w1 + w2 * w2); }
+float ROr(float w1, float w2) { return w1 + w2 + sqrt(w1 * w1 + w2 * w2); }
+float head(const sf::Vector2f &point) { return 1 - powf(point.x, 2) / 16 - powf(point.y + 3, 2) / 9; }
+float body(const sf::Vector2f &point) { return 1 - (point.x * point.x) / 9 - powf(point.y - 4, 2) / 25; }
+float tail(const sf::Vector2f &point) { return 1 - powf(point.x + 5, 2) / 9 - powf(point.y - 7.5, 2) / 0.25; }
+float w1(const sf::Vector2f &point) { return 1 - (point.x - 3) / -2 - (point.y + 6) / 3; }
+float w2(const sf::Vector2f &point) { return 1 - (point.x - 3) / -2 - (point.y + 6) / -1; }
+float w3(const sf::Vector2f &point) { return 1 - (point.x - 3) / 0.5 - (point.y + 6) / 3; }
+float w4(const sf::Vector2f &point) { return 1 - (point.x + 3) / 2 - (point.y + 6) / 3; }
+float w5(const sf::Vector2f &point) { return 1 - (point.x + 3) / 2 - (point.y + 6) / -1; }
+float w6(const sf::Vector2f &point) { return 1 - (point.x + 3) / -0.5 - (point.y + 3) / 3; }
+float leg1(const sf::Vector2f &point) { return 1 - powf(point.x + 1.5, 2) / 0.25 - powf(point.y - 6.5, 2) / 6.25; }
+float leg2(const sf::Vector2f &point) { return 1 - powf(point.x - 1.5, 2) / 0.25 - powf(point.y - 6.5, 2) / 6.25; }
+float WP (const sf::Vector2f &point) { return RAnd(w1(point), RAnd(w2(point), w3(point))); }
+float WL (const sf::Vector2f &point) { return RAnd(w4(point), RAnd(w5(point), w6(point))); }
+
+float myFunc(const sf::Vector2f &point)
+{
+	return ROr(head (point), ROr (WP (point), ROr (WL (point), ROr (tail (point), ROr (body (point), ROr (leg1(point),leg2(point))))))) ;
+}
+
+RFuncSprite rFuncSprite;
+
+
+void HandleUserInput(sf::RenderWindow &window, const sf::Event &event)
 {
 	switch (event.type)
 	{
-	case sf::Event::Closed:
+	case Event::Closed:
 		window.close();
 		break;
 	case sf::Event::MouseButtonPressed:
-		if (event.mouseButton.button == sf::Mouse::Left)
-		{
-			if (sprite—rimson.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y))
-			{
-				bgColor = sf::Color(245, 0, 88);
-			}
-			if (spriteYellow.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y))
-			{
-				bgColor = sf::Color(224, 188, 0);
-			}
-			if (spritePurple.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y))
-			{
-				bgColor = sf::Color(130, 17, 244);
-			}
-		}
-		break;
+	{
+	}
 	default:
 		break;
 	}
 }
 
+void RenderGui(RenderWindow &window)
+{
+	static float color[3];
+	ImGui::Begin("Default window");
+	if (ImGui::Button("Save"))
+	{
+		rFuncSprite.Save();
+	}
+	if (ImGui::ColorPicker3("color picker", color))
+	{
+		window.clear(Color::White);
+		colour[0] = int(color[0]*255.0f);
+		colour[1] = int(color[1] * 255.0f);
+		colour[2] = int(color[2] * 255.0f);
+	}
+	ImGui::End();
+}
+void Update(sf::RenderWindow &window, const sf::Time &deltaClock)
+{
+	// Make some time-dependent updates, like: physics, gameplay logic, animations, etc.
+}
+void Render(sf::RenderWindow &window)
+{
+	window.clear(Color::White);
+	rFuncSprite.DrawRFunc(&myFunc, FloatRect(-9, -10, 15, 20), colour[0], colour[1], colour[2]);
+	rFuncSprite.CombineImages();
+	rFuncSprite.SetTextureAll();
+	window.draw(rFuncSprite);
+}
 int main()
 {
-	
-
-	sf::RenderWindow window(sf::VideoMode(800, 800), "Geometry modeling 1");
+	rFuncSprite.Create(Vector2u(400, 400));
+	RenderWindow window(sf::VideoMode(800, 800), "Lab2");
 	window.setFramerateLimit(60);
 
-	spriteTexture—rimson.loadFromFile("./Source/button/button1.png");
-	sprite—rimson.setTexture(spriteTexture—rimson);
-	sprite—rimson.setTextureRect(sf::IntRect(0, 0, 214, 94));
-	sprite—rimson.setPosition(60, 60);
-
-	
-	spriteTextureYellow.loadFromFile("./Source/button/button2.png");
-	spriteYellow.setTexture(spriteTextureYellow);
-	spriteYellow.setTextureRect(sf::IntRect(0, 0, 166, 94));
-	spriteYellow.setPosition(314,60);
-
-	
-	spriteTexturePurple.loadFromFile("./Source/button/button3.png");
-	spritePurple.setTexture(spriteTexturePurple);
-	spritePurple.setTextureRect(sf::IntRect(0,0,224,94));
-	spritePurple.setPosition(520, 60);
-
+	sf::Clock deltaClock;
+	if (!ImGui::SFML::Init(window))
+	{
+		std::cout << "ImGui initialization failed\n";
+		return -1;
+	}
 	while (window.isOpen())
 	{
-		sf::Event event;
+		Event event;
 		while (window.pollEvent(event))
 		{
+			ImGui::SFML::ProcessEvent(window, event);
 			HandleUserInput(window, event);
 		}
-		window.clear(bgColor);
-		window.draw(spritePurple);
-		window.draw(sprite—rimson);
-		window.draw(spriteYellow);
+		sf::Time deltaTime = deltaClock.restart();
+		ImGui::SFML::Update(window, deltaTime);
+		Update(window, deltaTime);
+
+		RenderGui(window);
+		Render(window);
+
+		ImGui::SFML::Render(window);
 		window.display();
 	}
-
+	ImGui::SFML::Shutdown();
 	return 0;
-}
+};
